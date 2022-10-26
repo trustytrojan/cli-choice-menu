@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "colored.js": "^1.0.6"
+  }
+}
