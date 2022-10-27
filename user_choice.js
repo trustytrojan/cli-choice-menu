@@ -7,7 +7,7 @@ const { moveCursor, emitKeypressEvents } = require('readline');
  * make life easier with a event emitter
  * @param {EventEmitter} keyboard 
  */
-function initialize_raw_input(keyboard) {
+function initialize_input(keyboard) {
   emitKeypressEvents(stdin);
   stdin.on('keypress', (_, { sequence }) => {
     switch(sequence) {
@@ -22,13 +22,15 @@ function initialize_raw_input(keyboard) {
       case '\r': keyboard.emit('enter'); break;
       case '\x03':
       case '\x04':
+        moveCursor(stdout, 0, 100);
+        stdout.write('\r\n');
         process.exit();
     }
   });
   stdin.setRawMode(true);
 }
 
-function stop_raw_input() {
+function uninitialize_input() {
   stdin.removeAllListeners('keypress');
   stdin.setRawMode(false);
 }
@@ -46,7 +48,7 @@ async function safely_wait_for_enter(keyboard) {
 /**
  * Display values to a user for them to choose and return their choice.
  * @param {any[]} choices array of choices the user can choose from
- * @returns {any} user-chosen value
+ * @returns {Promise<any>} user-chosen value
  */
 async function user_choice(choices) {
   // create formatted strings for printing
@@ -70,7 +72,7 @@ async function user_choice(choices) {
 
   /* receive user input */ {
     const keyboard = new EventEmitter();
-    initialize_raw_input(keyboard);
+    initialize_input(keyboard);
     keyboard.on('up', () => {
       stdout.write('\r');
       if(selection === 1) return;
@@ -89,12 +91,12 @@ async function user_choice(choices) {
     });
     await safely_wait_for_enter(keyboard);
     keyboard.removeAllListeners();
-    stop_raw_input();
+    uninitialize_input();
   }
   
   // move cursor below choices
   moveCursor(stdout, 0, max-selection);
-  stdout.write('\r\n\n');
+  stdout.write('\r\n');
 
   return choices[selection-1];
 }
