@@ -1,6 +1,6 @@
 const colored = require('colored.js');
 const { once, EventEmitter } = require('events');
-const { stdin, stdout } = process;
+const { stdin, stdout, exit } = process;
 const { moveCursor, emitKeypressEvents } = require('readline');
 
 /**
@@ -24,7 +24,7 @@ function initialize_input(keyboard) {
       case '\x04':
         moveCursor(stdout, 0, 100);
         stdout.write('\r\n');
-        process.exit();
+        exit();
     }
   });
   stdin.setRawMode(true);
@@ -45,17 +45,75 @@ async function safely_wait_for_enter(keyboard) {
   stdin.pause();
 }
 
+const ascii_a = 'a'.charCodeAt(0);
+
+// honestly fuck typescript we don't need it
+
+class ChoicePrefixOptions {
+  /**
+   * Choices will be ordered starting from `1`. Mutually exclusive with `lettered`.
+   * @type {boolean}
+   */
+  numbered;
+
+  /**
+   * Choices will be ordered starting from `a`. Mutually exclusive with `numbered`.
+   * @type {boolean}
+   */
+  lettered;
+
+  /**
+   * Choice prefixes will be surrounded with parentheses. Mutually exclusive with `dot`.
+   * 
+   * For example: `(a)` or `(1)`
+   * @type {boolean}
+   */
+  parentheses;
+
+  /**
+   * Choice prefixes will be appended with a dot. Mutually exclusive with `parentheses`.
+   * 
+   * For example: `a.` or `1.`
+   * @type {boolean}
+   */
+  dot;
+}
+
 /**
  * Display values to a user for them to choose and return their choice.
  * @param {any[]} choices array of choices the user can choose from
+ * @param {ChoicePrefixOptions} choice_prefix_options choice prefixing options; if `undefined` choices are not prefixed
  * @returns {Promise<any>} user-chosen value
  */
-async function user_choice(choices) {
+async function user_choice(choices, choice_prefix_options) {
+
+  let numbered, lettered;
+  if(choice_prefix_options) {
+    ({ numbered, lettered, parentheses, dot } = choice_prefix_options);
+    if(numbered && lettered)
+      throw 'user_choice: Cannot use both numbered and lettered choice prefixes!';
+    if(parentheses && dot)
+      throw 'user_choice: Cannot use both parentheses and dots after prefixes!';
+  }
+
   // create formatted strings for printing
   const ss = [], ss_inv = [];
   const max = choices.length;
   for(let i = 1; i <= max; ++i) {
-    ss[i] = `${i}. ${choices[i-1]}`;
+    // avoid unnecessary errors
+    if(choices[i-1] === undefined)
+      throw 'user_choice: One of your choices is `undefined`!';
+    
+    // create prefix if options were supplied
+    let prefix = '';
+    if(numbered)
+      prefix = (parentheses) ? `(${i}) ` : `${i}. `;
+    else if(lettered) {
+      const letter = String.fromCharCode(ascii_a+(i-1));
+      prefix = (parentheses) ? `(${letter}) ` : `${letter}. `;
+    }
+
+    ss[i] = `${prefix}${choices[i-1]}`;
     ss_inv[i] = colored.inverse(ss[i]);
   }
 
@@ -66,8 +124,8 @@ async function user_choice(choices) {
   if(max > 1) stdout.write(`\n${ss[max]}`);
 
   // move cursor up to first selection
-  stdout.write('\r');
-  moveCursor(stdout, 0, -max+1);
+  stdout.write('\r\n');
+  moveCursor(stdout, 0, -max);
   let selection = 1;
 
   /* receive user input */ {
@@ -95,8 +153,8 @@ async function user_choice(choices) {
   }
   
   // move cursor below choices
-  moveCursor(stdout, 0, max-selection);
-  stdout.write('\r\n');
+  moveCursor(stdout, 0, max-selection+1);
+  stdout.write('\r');
 
   return choices[selection-1];
 }
