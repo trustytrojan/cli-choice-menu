@@ -3,7 +3,7 @@
     "colored.js": "^1.0.6"
   },
   "name": "cli-choice-menu",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "easy way to give the user an arrow-key navigatable menu of choices in the terminal",
   "main": "test.js",
   "scripts": {
