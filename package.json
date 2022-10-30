@@ -3,9 +3,9 @@
     "colored.js": "^1.0.6"
   },
   "name": "cli-choice-menu",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "easy way to give the user an arrow-key navigatable menu of choices in the terminal",
-  "main": "test.js",
+  "main": "user-choice.js",
   "scripts": {
     "test": "node test"
   },
@@ -13,7 +13,7 @@
     "type": "git",
     "url": "git+https://github.com/trustytrojan/cli-choice-menu.git"
   },
-  "author": "Tarun (trustytrojan)",
+  "author": "trustytrojan",
   "license": "GPL-3.0",
   "bugs": {
     "url": "https://github.com/trustytrojan/cli-choice-menu/issues"
